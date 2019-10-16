@@ -19,6 +19,8 @@ pwmPinTrack1 = 9;
 pwmPinTrack1 = 10;
 pwmPinTrack1 = 11;
 
+int address = 0; //Retains the Max EEPROM address in use.
+unsigned long timer = 0;
 
 String inputString = "";         // a String to hold incoming data
 bool stringComplete = false;  // whether the string is complete
@@ -62,7 +64,7 @@ void serialEvent() {
   }
   
   
-void readTemp()
+void printData()
 {
   for (int i = 0 ; i < EEPROM.length() ; i++) {
     byte value = EEPROM.read(i);                //read EEPROM data at address i
@@ -75,6 +77,12 @@ void readTemp()
     }
   }
 }
+
+byte readLastData()
+{
+    return EEPROM.read(address);                //read EEPROM data at address "address"
+}
+
  
 void clearEEPROM()
 {
@@ -87,21 +95,29 @@ void clearEEPROM()
   Serial.println("EEPROM erased");
   address = 0;                                  //reset address counter
 }
- 
-void writeTemp()
+
+/* Receive the actual value and compare to the last write, if the diference is "Justifiable" write it next*/
+void writeData(byte val)
 {
-  byte value = analogRead(tempPin);     //read sensor value
-   
-  EEPROM.write(address, value);         //write value to current address counter address
- 
-  Serial.print("Sensor value stored at address ");
-  Serial.println(address);
-   
-  address++;                      //increment address counter
+  if (address == 0){
+    EEPROM.write(address, val);
+    address++;
+    return
+  }
   if(address == EEPROM.length())  //check if address counter has reached the end of EEPROM
   {
-    address = 0;              //if yes: reset address counter
+    Serial.print("Reach the maximum Address. Cant store anymore info. Last address: ");
+    Serial.println(address);
+    return;
   }
+  byte last = readLastData();
+  if (last - 2 > val || last + 2 < val){
+    EEPROM.write(address, value);         //write value to current address counter address
+    Serial.print("Sensor value stored at address ");
+    Serial.println(address);
+    address++;                      //increment address counter
+  }
+
 }
   
 }
